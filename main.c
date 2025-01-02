@@ -156,7 +156,6 @@ get_window_size(int *rows, int *cols){
         return 0;
     }
 }
-
 void
 clear_screen(){
     // For each line we need:
@@ -165,26 +164,15 @@ clear_screen(){
     int line_size = screen.width + 5;
     int total_size = 3 + (line_size * screen.height);  // 3 for initial \x1b[H
     
-    screen.frame_buffer = malloc(sizeof(struct Buffer));
-    screen.frame_buffer->c = malloc(total_size);
-    screen.frame_buffer->len = total_size;
-    screen.frame_buffer->used = 0;
-
-    // Start with cursor home
+    memset(screen.frame_buffer->c, ' ', total_size);
     memcpy(screen.frame_buffer->c, "\x1b[H", 3);
-    screen.frame_buffer->used = 3;
-
-    // Initialize each line with spaces and ending sequence
-    char* line = malloc(line_size);
-    memset(line, ' ', screen.width);
-    memcpy(line + screen.width, "\x1b[K\r\n", 5);
+    screen.frame_buffer->len = total_size;
 
     // Copy the formatted line screen.height times
     for (int i = 0; i < screen.height; i++) {
-        memcpy(&screen.frame_buffer->c[3 + i * line_size], line, line_size);
+        memcpy(&screen.frame_buffer->c[3 + screen.width + i * line_size], "\x1b[K\r\n", 5);
     }
 
-    free(line);
     screen.frame_buffer->used = total_size;
 }
 
@@ -193,6 +181,11 @@ void screen_init() {
 
     // Hide cursor
     write(STDOUT_FILENO, "\x1b[?25l", 6); 
+    screen.frame_buffer = malloc(sizeof(struct Buffer));
+
+    int line_size = screen.width + 5;
+    int total_size = 3 + (line_size * screen.height);  // 3 for initial \x1b[H
+    screen.frame_buffer->c = malloc(total_size);
     clear_screen();
 }
 
@@ -210,6 +203,8 @@ long get_us() {
 
 long render(){
     long start = get_us();
+
+    clear_screen();
     
     // Calculate center position
     int center_x = screen.width / 2;
