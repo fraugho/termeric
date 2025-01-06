@@ -1,4 +1,4 @@
-/* Terminal Renderer - A simple terminal graphics system */
+/* Terminator - A simple terminal graphics system */
 
 /* Standard includes */
 #include <unistd.h>
@@ -17,6 +17,8 @@ int times = 0;
 #define true 1
 #define false 0
 #define CTRL_KEY(k) ((k) & 0x1f)
+int  FRONT =  1;
+int  BACK =  0;
 
 /* Special key codes */
 enum SpecialKeys {
@@ -33,24 +35,22 @@ enum SpecialKeys {
 };
 
 /* Data structures */
-struct Buffer {
+typedef struct Buffer {
     char *c;
     int len;
     int used;
-};
+} Buffer;
 
 struct Screen {
     int width, height;
     struct termios og_termios;
-    struct Buffer* f_frame_buf;
-    struct Buffer* b_frame_buf;
+    Buffer* render_frames;
+    char** cleaned_frames;
     long start_time;
 };
 
-
 /* Global state */
 struct Screen screen;
-
 
 /* Buffer operations */
 #define BUFFER_INIT {NULL, 0}
@@ -162,10 +162,9 @@ int get_window_size(int *rows, int *cols) {
     }
 }
 
-void swap_buf(){
-    struct Buffer* temp = screen.f_frame_buf;
-    screen.f_frame_buf = screen.b_frame_buf;
-    screen.b_frame_buf = temp;
+static inline void swap_buf(){
+    FRONT = 1 - FRONT;
+    BACK = 1 - BACK;
 }
 
 void clear_frame_buf(struct Buffer* buf){
@@ -195,26 +194,26 @@ void clear_screen() {
     int line_size = screen.width + 5;
     int total_size = 3 + (line_size * screen.height);  // 3 for initial \x1b[H
     
-    memset(screen.f_frame_buf->c, ' ', total_size);
-    memcpy(screen.f_frame_buf->c, "\x1b[H", 3);
-    screen.f_frame_buf->len = total_size;
+    memset(screen.render_frames[FRONT].c, ' ', total_size);
+    memcpy(screen.render_frames[FRONT].c, "\x1b[H", 3);
+    screen.render_frames[FRONT].len = total_size;
 
     // Copy the formatted line screen.height times
     for (int i = 0; i < screen.height; i++) {
-        memcpy(&screen.f_frame_buf->c[3 + screen.width + i * line_size], "\x1b[K\r\n", 5);
+        memcpy(&screen.render_frames[FRONT].c[3 + screen.width + i * line_size], "\x1b[K\r\n", 5);
     }
 
-    screen.f_frame_buf->used = total_size;
+    screen.render_frames[FRONT].used = total_size;
 }
 
 /* Timing utilities */
-long get_ms() {
+static inline long get_ms() {
     struct timespec spec;
     clock_gettime(CLOCK_MONOTONIC, &spec);
     return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
 }
 
-long get_us() {
+static inline long get_us() {
     struct timespec spec;
     clock_gettime(CLOCK_MONOTONIC, &spec);
     return spec.tv_sec * 1000000 + spec.tv_nsec / 1000;
@@ -230,22 +229,22 @@ void screen_init() {
     // Initialize both buffers
     int line_size = screen.width + 5;
     int total_size = 3 + (line_size * screen.height);
+
+    screen.render_frames = malloc(sizeof(Buffer) * 2);
+
+    screen.render_frames[FRONT].c = malloc(total_size);
+    screen.render_frames[FRONT].len = total_size;
+    screen.render_frames[FRONT].used = 0;
     
-    screen.f_frame_buf = malloc(sizeof(struct Buffer));
-    screen.f_frame_buf->c = malloc(total_size);
-    screen.f_frame_buf->len = total_size;
-    screen.f_frame_buf->used = 0;
-    
-    screen.b_frame_buf = malloc(sizeof(struct Buffer));
-    screen.b_frame_buf->c = malloc(total_size);
-    screen.b_frame_buf->len = total_size;
-    screen.b_frame_buf->used = 0;
+    screen.render_frames[BACK].c = malloc(total_size);
+    screen.render_frames[BACK].len = total_size;
+    screen.render_frames[BACK].used = 0;
 
     screen.start_time = get_ms();
     
     // Initial clear of both buffers
-    clear_frame_buf(screen.f_frame_buf);
-    clear_frame_buf(screen.b_frame_buf);
+    clear_frame_buf(&screen.render_frames[FRONT]);
+    clear_frame_buf(&screen.render_frames[BACK]);
 }
 
 void*
@@ -259,20 +258,19 @@ thread_render(){
     float position = (elapsed * 0.1f) * screen.width;  // Adjust 0.1f to control speed
     
     // Draw character at center
-    screen.f_frame_buf->c[times % screen.width + center_y * (screen.width + 5) + 3] = '#';
-    //screen.b_frame_buf->c[(int)position % screen.width + center_y * (screen.width + 5) + 3] = '#';
+    screen.render_frames[FRONT].c[times % screen.width + center_y * (screen.width + 5) + 3] = '#';
+    //screen.render_frames[BACK].c[(int)position % screen.width + center_y * (screen.width + 5) + 3] = '#';
 
     // Output frame buffer
-    write(STDOUT_FILENO, screen.f_frame_buf->c, screen.f_frame_buf->used);
+    write(STDOUT_FILENO, screen.render_frames[FRONT].c, screen.render_frames[FRONT].used);
     return NULL;
 }
 
 void*
 thread_clear(){
-    clear_frame_buf(screen.b_frame_buf);
+    clear_frame_buf(&screen.render_frames[BACK]);
     return NULL;
 }
-
 
 /* Rendering */
 long render() {
@@ -307,6 +305,8 @@ int main() {
     screen_init();
     enable_raw_mode();
 
+    long cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+
     long total = 0;
     long min_time = 1000000;  // 1 second in microseconds
     long max_time = 0;
@@ -330,7 +330,7 @@ int main() {
     printf("Worst frame time: %ld us (%.2f FPS)\n", 
            max_time, 1000000.0 / max_time);
            
-    buf_free(screen.f_frame_buf);
-    buf_free(screen.b_frame_buf);
+    buf_free(&screen.render_frames[FRONT]);
+    buf_free(&screen.render_frames[BACK]);
     return 0;
 }
