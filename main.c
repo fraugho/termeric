@@ -10,8 +10,15 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 int times = 0;
+long total = 0;
+long min_time = 1000000;  // 1 second in microseconds
+long max_time = 0;
+
+bool running = true;
+bool cleaned = true;
 
 /* Constants and macros */
 #define true 1
@@ -186,26 +193,6 @@ void clear_frame_buf(struct Buffer* buf){
     buf->used = total_size;
 }
 
-/* Screen operations */
-void clear_screen() {
-    // For each line we need:
-    // - screen.width characters
-    // - \x1b[K\r\n (5 bytes) for clear line and newline
-    int line_size = screen.width + 5;
-    int total_size = 3 + (line_size * screen.height);  // 3 for initial \x1b[H
-    
-    memset(screen.render_frames[FRONT].c, ' ', total_size);
-    memcpy(screen.render_frames[FRONT].c, "\x1b[H", 3);
-    screen.render_frames[FRONT].len = total_size;
-
-    // Copy the formatted line screen.height times
-    for (int i = 0; i < screen.height; i++) {
-        memcpy(&screen.render_frames[FRONT].c[3 + screen.width + i * line_size], "\x1b[K\r\n", 5);
-    }
-
-    screen.render_frames[FRONT].used = total_size;
-}
-
 /* Timing utilities */
 static inline long get_ms() {
     struct timespec spec;
@@ -253,16 +240,29 @@ thread_render(){
     int center_x = screen.width / 2;
     int center_y = screen.height / 2;
 
+    // Draw character at center
+    //screen.render_frames[FRONT].c[times % screen.width + center_y * (screen.width + 5) + 3] = '#';
+
     long current_time = get_ms();
     float elapsed = (current_time - screen.start_time) / 1000.0f;  // Convert to milliseconds
-    float position = (elapsed * 0.1f) * screen.width;  // Adjust 0.1f to control speed
-    
-    // Draw character at center
-    screen.render_frames[FRONT].c[times % screen.width + center_y * (screen.width + 5) + 3] = '#';
-    //screen.render_frames[BACK].c[(int)position % screen.width + center_y * (screen.width + 5) + 3] = '#';
+    int position = (elapsed * 0.1f) * screen.width;
+    screen.render_frames[FRONT].c[position % screen.width + center_y * (screen.width + 5) + 3] = '#';
+
+    long start = get_us();
 
     // Output frame buffer
     write(STDOUT_FILENO, screen.render_frames[FRONT].c, screen.render_frames[FRONT].used);
+
+    long end = get_us();
+    long frame_time = end - start;
+    total += frame_time;
+
+    if (frame_time < min_time) min_time = frame_time;
+    if (frame_time > max_time) max_time = frame_time;
+
+    char t_buf[32];
+    int len = snprintf(t_buf, sizeof(t_buf), "Time taken: %ld us\x1b[K\r", frame_time);
+    write(STDOUT_FILENO, t_buf, len);
     return NULL;
 }
 
@@ -273,9 +273,7 @@ thread_clear(){
 }
 
 /* Rendering */
-long render() {
-    long start = get_us();
-
+void render() {
     pthread_t threads[2];
 
     // Create threads
@@ -288,16 +286,6 @@ long render() {
     }
 
     swap_buf();
-
-    // Calculate and display timing
-    long end = get_us();
-    long elapsed_ms = end - start;
-
-    char t_buf[32];
-    int len = snprintf(t_buf, sizeof(t_buf), "Time taken: %ld us\x1b[K\r", elapsed_ms);
-    write(STDOUT_FILENO, t_buf, len);
-    
-    return elapsed_ms;
 }
 
 /* Main entry point */
@@ -307,18 +295,9 @@ int main() {
 
     long cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
 
-    long total = 0;
-    long min_time = 1000000;  // 1 second in microseconds
-    long max_time = 0;
-    
     while (editor_read_key() != CTRL_KEY('q')) {
-        long frame_time = render();
-        total += frame_time;
-        
-        if (frame_time < min_time) min_time = frame_time;
-        if (frame_time > max_time) max_time = frame_time;
-
-        times += 2;
+        render();
+        ++times;
     }
     
     disable_raw_mode();
