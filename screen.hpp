@@ -8,19 +8,20 @@
 
 #include "init.hpp"
 #include "buffer.h"
+#include "int.hpp"
 
 #define RENDER 1 << 1
 #define IO 1 << 2
 
-typedef struct Point{
-    int16_t x;
-    int16_t y;
-} Point;
+typedef struct Vec2{
+    i16 x;
+    i16 y;
+} Vec2;
 
 class Screen{
     public:
         Buffer* frames;
-        uint16_t width, height;
+        u16 width, height;
 
         void draw_blank(){
             char* buf = (char*)malloc(width * height);
@@ -51,13 +52,13 @@ class Screen{
             }
         }
 
-        void clean_square(Buffer* buf, Point TopLeft, Point BottomRight, char c) {
+        void clean_square(Buffer* buf, Vec2 TopLeft, Vec2 BottomRight, char c) {
             size_t total_len = 0;  // This will store the total length of the output string
             static const char* format = "\x1b[%hd;%hdH%c";  // Escape sequence format
 
             // Calculate how much space we will need in the buffer
-            for (uint16_t y = TopLeft.y; y <= BottomRight.y; ++y) {
-                for (uint16_t x = TopLeft.x; x <= BottomRight.x; ++x) {
+            for (u16 y = TopLeft.y; y <= BottomRight.y; ++y) {
+                for (u16 x = TopLeft.x; x <= BottomRight.x; ++x) {
                     total_len += snprintf(NULL, 0, format, y, x, c);  // Add the length for each formatted string
                 }
             }
@@ -69,8 +70,8 @@ class Screen{
 
             char* cursor = &buf->c[buf->used];
 
-            for (uint16_t y = TopLeft.y; y <= BottomRight.y; ++y) {
-                for (uint16_t x = TopLeft.x; x <= BottomRight.x; ++x) {
+            for (u16 y = TopLeft.y; y <= BottomRight.y; ++y) {
+                for (u16 x = TopLeft.x; x <= BottomRight.x; ++x) {
                     cursor += snprintf(cursor, buf->len - (cursor - buf->c), format, y, x, c);
                 }
             }
@@ -83,9 +84,12 @@ class Screen{
             write(STDOUT_FILENO, buf->c, buf->used);
         }
 
-        static inline void draw_pixel(Buffer* buf, Point point, char c){
-            uint16_t len = snprintf(&buf->c[buf->used], buf->len - buf-> used, "\x1b[%hd;%hdH%c", point.y, point.x, c);
+        static inline void draw_pixel(Buffer* buf, Vec2 point, char c){
+            u16 len = snprintf(&buf->c[buf->used], buf->len - buf-> used, "\x1b[%hd;%hdH%c", point.y, point.x, c);
             buf->used += len;
+        }
+
+        void draw_line(){
         }
 
         void free(){

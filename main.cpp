@@ -1,7 +1,7 @@
 /* Terminator - A simple terminal graphics system */
 /* Standard includes */
 //mine
-#include "timing.h"
+#include "timing.hpp"
 #include "snake.hpp"
 #include "engine.hpp"
 #include "input.hpp"
@@ -18,8 +18,8 @@ void render() {
     static Timer render_timer = {0, X_RENDER_INTERVAL};
     static Timer move_timer = {0, MOVE_INTERVAL};
 
-    static int64_t last_key_check = 0;
-    int64_t current_time = get_us();
+    static i64 last_key_check = 0;
+    i64 current_time = get_us();
 
     // Adjust render interval dynamically because of terminal cell width to height ratio
     render_timer.interval = snake.y_move ? Y_RENDER_INTERVAL : X_RENDER_INTERVAL;
@@ -48,5 +48,5 @@ void render() {
 /* Main entry point */
 int main() {
     snake.init();
-    engine_init();
+    engine_run();
 }

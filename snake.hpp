@@ -1,23 +1,23 @@
 #ifndef SNAKE_HPP
 #define SNAKE_HPP
 
-#include <time.h>
 #include "screen.hpp"
 #include "engine.hpp"
 #include "vec.hpp"
+#include "int.hpp"
 
-const uint8_t INIT_SIZE = 5;
+const u8 INIT_SIZE = 5;
 
 class Snake{
     public:
-        Vec<int16_t> x;
-        Vec<int16_t> y;
-        int8_t vx;
-        int8_t vy;
-        uint8_t size;
-        int16_t apple_x;
-        int16_t apple_y;
-        uint8_t y_move = 0;
+        Vec<i16> x;
+        Vec<i16> y;
+        i8 vx;
+        i8 vy;
+        u8 size;
+        i16 apple_x;
+        i16 apple_y;
+        u8 y_move = 0;
 
         void init(){
             size = INIT_SIZE;
@@ -114,8 +114,8 @@ class Snake{
             apple_logic();
 
             // Store old head position
-            int16_t prev_x = x[0];
-            int16_t prev_y = y[0];
+            i16 prev_x = x[0];
+            i16 prev_y = y[0];
 
             // Move head first
             move_head();
@@ -135,19 +135,19 @@ class Snake{
         // Draw snake
         void render(Buffer* buf) {
             for(int i = 0; i < size; ++i) {
-                screen.draw_pixel(buf, (Point){x[i], y[i]}, '#');
+                screen.draw_pixel(buf, {x[i], y[i]}, '#');
             }
         }
 
         void clean(Buffer* buf) {
             for(int i = 0; i < size; ++i) {
-                screen.draw_pixel(buf, (Point){x[i], y[i]}, ' ');
+                screen.draw_pixel(buf, {x[i], y[i]}, ' ');
             }
         }
 
         void apple_render(Buffer* buf) {
             int center_y = screen.height / 2;
-            screen.draw_pixel(buf, (Point){apple_x, apple_y}, '*');
+            screen.draw_pixel(buf, {apple_x, apple_y}, '*');
         }
     private:
 };

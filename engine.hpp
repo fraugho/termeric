@@ -4,15 +4,16 @@
 #include <pthread.h>
 #include <time.h>
 //mine
-#include "timing.h"
+#include "timing.hpp"
 #include "screen.hpp"
 #include "init.hpp"
 #include "input.hpp"
+#include "int.hpp"
 
 int times = 0;
-int64_t total = 0;
-int64_t min_time = INT64_MAX;
-int64_t max_time = 0;
+i64 total = 0;
+i64 min_time = INT64_MAX;
+i64 max_time = 0;
 
 int io_index = 0;
 int render_index = 0;
@@ -79,7 +80,7 @@ void print_perf(){
     }
 }
 
-void engine_init(){
+void engine_run(){
     screen.init();
 
     const int BASIC_TASK_TC = 2;
