@@ -4,14 +4,14 @@
 #include <time.h>
 #include "screen.hpp"
 #include "engine.hpp"
-#include "vec.h"
+#include "vec.hpp"
 
 const uint8_t INIT_SIZE = 5;
 
 class Snake{
     public:
-        Vec* x;
-        Vec* y;
+        Vec<int16_t> x;
+        Vec<int16_t> y;
         int8_t vx;
         int8_t vy;
         uint8_t size;
@@ -25,17 +25,14 @@ class Snake{
             vx = 1;
             vy = 0;
 
-            x = vec_create(INIT_SIZE, sizeof(int16_t));
             for(int i = INIT_SIZE; i > 0; --i){
-                int16_t num = i;
-                vec_append(x, &num);
+                x.append(i);
             }
 
-            y = vec_create(INIT_SIZE, sizeof(int16_t));
             for(int i = 0; i < INIT_SIZE; ++i){
-                int16_t num = 50;
-                vec_append(y, &num);
+                y.append(50);
             }
+
             apple_x = 50;
             apple_y = 50;
         }
@@ -72,33 +69,30 @@ class Snake{
         }
 
         void move_head(){
-
-            ((int16_t*)x->data)[0] += vx;
-            ((int16_t*)y->data)[0] += vy;
+            x[0] += vx;
+            y[0] += vy;
 
             // Wrap around the screen
-            if (((int16_t*)x->data)[0] < 0){
-                ((int16_t*)x->data)[0] = screen.width;
+            if (x[0] < 0){
+                x[0] = screen.width;
             }
-            if (((int16_t*)x->data)[0] > screen.width){
-                ((int16_t*)x->data)[0] = 0;
+            if (x[0] > screen.width){
+                x[0] = 0;
             }
-            if (((int16_t*)y->data)[0] < 0){
-                ((int16_t*)y->data)[0] = screen.height;
+            if (y[0] < 0){
+                y[0] = screen.height;
             }
-            if (((int16_t*)y->data)[0] > screen.height){
-                ((int16_t*)y->data)[0] = 0;
+            if (y[0] > screen.height){
+                y[0] = 0;
             }
         }
 
         void apple_logic(){
-            if (apple_x == ((int16_t*)x->data)[0] &&
-                    apple_y == ((int16_t*)y->data)[0]){
+            if (apple_x == x[0] &&
+                    apple_y == y[0]){
 
-                static int16_t num = 0;
-                //adds body cell
-                vec_append(x, &num);
-                vec_append(y, &num);
+                x.append(0);
+                y.append(0);
                 ++size;
 
                 //changes apple position
@@ -109,8 +103,7 @@ class Snake{
 
         void collision_logic(){
             for(int i = 1; i < size; ++i){
-                if (((int16_t*)x->data)[0] == ((int16_t*)x->data)[i] &&
-                        ((int16_t*)y->data)[0] == ((int16_t*)y->data)[i]){
+                if (x[0] == x[i] && y[0] == y[i]){
                     engine_close();
                 }
             }
@@ -121,20 +114,20 @@ class Snake{
             apple_logic();
 
             // Store old head position
-            int16_t prev_x = ((int16_t*)x->data)[0];
-            int16_t prev_y = ((int16_t*)y->data)[0];
+            int16_t prev_x = x[0];
+            int16_t prev_y = y[0];
 
             // Move head first
             move_head();
 
             // Move rest of body - each segment takes previous segment's position
             for(int i = 1; i < size; ++i) {
-                int16_t temp = ((int16_t*)x->data)[i];
-                ((int16_t*)x->data)[i] = prev_x;
+                int16_t temp = x[i];
+                x[i] = prev_x;
                 prev_x = temp;
 
-                temp = ((int16_t*)y->data)[i];
-                ((int16_t*)y->data)[i] = prev_y;
+                temp = y[i];
+                y[i] = prev_y;
                 prev_y = temp;
             }
         }
@@ -142,24 +135,19 @@ class Snake{
         // Draw snake
         void render(Buffer* buf) {
             for(int i = 0; i < size; ++i) {
-                screen.draw_pixel(buf, (Point){((int16_t*)x->data)[i], ((int16_t*)y->data)[i]}, '#');
+                screen.draw_pixel(buf, (Point){x[i], y[i]}, '#');
             }
         }
 
         void clean(Buffer* buf) {
             for(int i = 0; i < size; ++i) {
-                screen.draw_pixel(buf, (Point){((int16_t*)x->data)[i], ((int16_t*)y->data)[i]}, ' ');
+                screen.draw_pixel(buf, (Point){x[i], y[i]}, ' ');
             }
         }
 
         void apple_render(Buffer* buf) {
             int center_y = screen.height / 2;
             screen.draw_pixel(buf, (Point){apple_x, apple_y}, '*');
-        }
-
-        void free(){
-            free_vec(x);
-            free_vec(y);
         }
     private:
 };
