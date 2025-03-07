@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <time.h>
+#include <thread>
 //mine
 #include "timing.hpp"
 #include "screen.hpp"
@@ -97,9 +98,34 @@ void engine_run(){
         last_key = editor_read_key();
     }
 
+    for(auto thread : threads){
+        pthread_join(thread, NULL);
+    }
 
-    for(int i = 0; i < 2; i++) {
-        pthread_join(threads[i], NULL);
+    screen.free();
+    print_perf();
+}
+
+void thread_engine_run(){
+    screen.init();
+
+    const int BASIC_TASK_TC = 2;
+
+    std::thread threads[BASIC_TASK_TC];
+
+    //std::thread thread = std::thread(thread_render);
+    //threads[0] = std::thread(thread_render);
+    //threads[1] = std::thread(thread_write);
+
+    long cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    remaining_threads += cpu_num - 2;
+
+    while (RUNNING) {
+        last_key = editor_read_key();
+    }
+
+    for(auto& thread : threads){
+        thread.join();
     }
 
     screen.free();

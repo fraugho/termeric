@@ -5,6 +5,7 @@
 #include "snake.hpp"
 #include "engine.hpp"
 #include "input.hpp"
+#include "sprte.hpp"
 
 //global snake
 Snake snake;
@@ -14,7 +15,7 @@ Snake snake;
 #define Y_RENDER_INTERVAL 100000
 #define MOVE_INTERVAL 10000
 
-void render() {
+void snake_render() {
     static Timer render_timer = {0, X_RENDER_INTERVAL};
     static Timer move_timer = {0, MOVE_INTERVAL};
 
@@ -45,6 +46,15 @@ void render() {
     }
 }
 
+void render() {
+    sprite_render(&screen.frames[render_index]);
+    // Handle user input
+    if (get_key() == CTRL_KEY('q')) {
+        engine_close();
+    }
+}
+/*
+ * */
 /* Main entry point */
 int main() {
     snake.init();

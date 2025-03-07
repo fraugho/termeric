@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <fstream>
 
 #include "init.hpp"
 #include "buffer.h"
@@ -85,8 +86,33 @@ class Screen{
         }
 
         static inline void draw_pixel(Buffer* buf, Vec2 point, char c){
-            u16 len = snprintf(&buf->c[buf->used], buf->len - buf-> used, "\x1b[%hd;%hdH%c", point.y, point.x, c);
-            buf->used += len;
+            u16 len = snprintf(&buf->c[buf->used], buf->len - buf-> used, "\x1b[%hd;%hdH%c", point.y, point.x, c); buf->used += len;
+        }
+
+        void load_file_print(std::string file_name, Buffer* buf, Vec2 pos){
+            std::ifstream file(file_name);
+            std::string text;
+            //draw_pixel(buf, {0, 0}, '#');
+            //draw_pixel(buf, {0,  1}, '#');
+            while(std::getline(file, text)){
+                for(int i = 0; i < text.length(); ++i, ++pos.x){
+                    draw_pixel(buf, pos, text[i]);
+                }
+                pos.x = 1;
+                ++pos.y;
+            }
+        }
+
+        void load_file_clean(std::string file_name, Buffer* buf, Vec2 pos){
+            std::ifstream file(file_name);
+            std::string text;
+            while(std::getline(file, text)){
+                for(int i = 0; i < text.length(); ++i, ++pos.x){
+                    draw_pixel(buf, pos, ' ');
+                }
+                pos.x = 1;
+                ++pos.y;
+            }
         }
 
         void draw_line(){
