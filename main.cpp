@@ -5,7 +5,7 @@
 #include "snake.hpp"
 #include "engine.hpp"
 #include "input.hpp"
-#include "sprte.hpp"
+#include "sprite.hpp"
 
 //global snake
 Snake snake;
@@ -47,6 +47,7 @@ void snake_render() {
 }
 
 void render() {
+    //snake_render();
     sprite_render(&screen.frames[render_index]);
     // Handle user input
     if (get_key() == CTRL_KEY('q')) {

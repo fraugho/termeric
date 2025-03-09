@@ -94,24 +94,28 @@ class Screen{
             std::string text;
             //draw_pixel(buf, {0, 0}, '#');
             //draw_pixel(buf, {0,  1}, '#');
+            i16 x = pos.x;
             while(std::getline(file, text)){
-                for(int i = 0; i < text.length(); ++i, ++pos.x){
+                u8 len = text.length();
+                for(int i = 0; i < len; ++i, ++pos.x){
                     draw_pixel(buf, pos, text[i]);
                 }
-                pos.x = 1;
                 ++pos.y;
+                pos.x = x;
             }
         }
 
         void load_file_clean(std::string file_name, Buffer* buf, Vec2 pos){
             std::ifstream file(file_name);
             std::string text;
+            i16 x = pos.x;
             while(std::getline(file, text)){
-                for(int i = 0; i < text.length(); ++i, ++pos.x){
+                u8 len = text.length();
+                for(int i = 0; i < len; ++i, ++pos.x){
                     draw_pixel(buf, pos, ' ');
                 }
-                pos.x = 1;
                 ++pos.y;
+                pos.x = x;
             }
         }
 
