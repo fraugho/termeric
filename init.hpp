@@ -54,6 +54,28 @@ int get_window_size(uint16_t *rows, uint16_t *cols) {
     }
 }
 
+int get_window_cols() {
+    struct winsize ws;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) return -1;
+        return 0;
+    } else {
+        return ws.ws_col;
+    }
+}
+
+int get_window_rows() {
+    struct winsize ws;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) return -1;
+        return 0;
+    } else {
+        return ws.ws_row;
+    }
+}
+
 struct termios og_termios;
 
 void disable_raw_mode() {

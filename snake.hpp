@@ -7,7 +7,7 @@
 #include "int.hpp"
 
 const u8 INIT_SIZE = 5;
-
+#include "init.hpp"
 class Snake{
     public:
         Vec<i16> x;
@@ -21,6 +21,7 @@ class Snake{
 
         void init(){
             size = INIT_SIZE;
+            srand(time(NULL)); 
 
             vx = 1;
             vy = 0;
@@ -29,12 +30,13 @@ class Snake{
                 x.append(i);
             }
 
+            i16 ypos = 50 % get_window_rows();
             for(int i = 0; i < INIT_SIZE; ++i){
-                y.append(50);
+                y.append(ypos);
             }
 
-            apple_x = 50;
-            apple_y = 50;
+            apple_x = rand() % get_window_cols();
+            apple_y = rand() % get_window_rows();
         }
 
         void move(int key) {
@@ -96,8 +98,8 @@ class Snake{
                 ++size;
 
                 //changes apple position
-                apple_x = rand() % screen.width;
-                apple_y = rand() % screen.height;
+                apple_x = rand() % (screen.width - 1) + 1;
+                apple_y = rand() % (screen.height - 1) + 1;
             }
         }
 

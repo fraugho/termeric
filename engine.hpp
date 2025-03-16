@@ -10,6 +10,7 @@
 #include "init.hpp"
 #include "input.hpp"
 #include "int.hpp"
+#include "config.hpp"
 
 int times = 0;
 i64 total = 0;
@@ -25,12 +26,25 @@ int remaining_threads = 0;
 
 void render();
 
-void* thread_render(void* args){
-    while(RUNNING){
+i64 RENDER_INTERVAL = 100000;
+
+static inline void engine_close();
+void* thread_render(void* args) {
+    while (RUNNING) {
+#if FRAME_CAPPING_ENABLED
+        static Timer render_timer = {0, RENDER_INTERVAL};
+        i64 current_time = get_us();
+        if (is_time_elapsed(&render_timer, current_time) && screen.frames[render_index].state == RENDER) {
+        reset_timer(&render_timer, current_time);
+#else
         if (screen.frames[render_index].state == RENDER) {
+#endif
             render();
             screen.frames[render_index].state = IO;
             render_index = (render_index + 1) % num_frames;
+            if (get_key() == CTRL_KEY('q')) {
+                engine_close();
+            }
         }
     }
     return NULL;
